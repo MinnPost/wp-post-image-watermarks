@@ -9,3 +9,7 @@ In Drupal, we have a library that works like this:
 3. Put the corresponding MP+ png on top of the image, position it, and save it.
 
 It runs on the thumbnail images that appear in the above locations.
+
+On [this article](https://www.minnpost.com/minnpost-picks/2018/03/minnpost-picks-civil-and-digital-rights-creative-cursing-and-saying-goodbye-p), it works like this:
+
+![example MP+ overlay](https://www.minnpost.com/sites/default/files/imagecache/feature/images/thumbnails/articles/PortlandiaThumb.jpg)
