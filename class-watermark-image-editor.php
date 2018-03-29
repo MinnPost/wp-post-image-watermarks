@@ -1,6 +1,14 @@
 <?php
 class Watermark_Image_Editor extends WP_Image_Editor_GD {
-	public function stamp_watermark( $stamp_path, $margin_h = 0, $margin_v = 0 ) {
+	/**
+	* Stamp the watermark onto the image attached to this class
+	*
+	* @param string $stamp_path
+	* @param string|int $x
+	* @param string|int $y
+	*
+	*/
+	public function stamp_watermark( $stamp_path, $x = 0, $y = 0 ) {
 		$loaded = $this->load();
 		if ( is_wp_error( $loaded ) ) {
 			return $loaded;
@@ -12,10 +20,59 @@ class Watermark_Image_Editor extends WP_Image_Editor_GD {
 		}
 		imagealphablending( $stamp, true );
 
-		$sx = imagesx( $stamp );
-		$sy = imagesy( $stamp );
+		$stamp_width  = imagesx( $stamp );
+		$stamp_height = imagesy( $stamp );
 		imagealphablending( $this->image, true );
-		imagecopy( $this->image, $stamp, $margin_h, $this->size['height'] - $sy - $margin_v, 0, 0, $sx, $sy );
+
+		switch ( $x ) {
+			case 'left':
+				$x = 0;
+				break;
+			case 'right':
+				$x = imagesx( $this->image ) - $stamp_width;
+				break;
+			default:
+				$x = $x;
+				break;
+		}
+
+		switch ( $y ) {
+			case 'top':
+				$y = 0;
+				break;
+			case 'bottom':
+				$y = imagesy( $this->image ) - $stamp_height;
+				break;
+			default:
+				$y = $y;
+				break;
+		}
+
+		/**
+		* PHP imagecopy function
+		*
+		* @param resource $dst_im
+		*     Destination image link resource.
+		* @param resource $src_im
+		*     Source image link resource.
+		* @param int $dst_x
+		*     x-coordinate of destination point.
+		* @param int $dst_y
+		*     y-coordinate of destination point.
+		* @param int $src_x
+		*     x-coordinate of source point.
+		* @param int $src_y
+		*     y-coordinate of source point.
+		* @param int
+		*     $src_w Source width.
+		* @param int
+		*     $src_h Source height.
+		*
+		* @return bool
+		*     true on success, false on failure
+		*
+		*/
+		imagecopy( $this->image, $stamp, $x, $y, 0, 0, $stamp_width, $stamp_height );
 	}
 
 	public static function test( $args = array() ) {

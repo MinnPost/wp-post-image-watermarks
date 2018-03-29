@@ -23,6 +23,8 @@ class WP_Post_Image_Watermarks {
 	public $watermark_field;
 	public $watermark_folder_url;
 	public $watermark_extension;
+	public $watermark_position_x;
+	public $watermark_position_y;
 
 	/**
 	 * @var object
@@ -62,6 +64,8 @@ class WP_Post_Image_Watermarks {
 		$this->watermark_field      = '_mp_plus_icon_style';
 		$this->watermark_folder_url = get_theme_file_path() . '/assets/img/icons/';
 		$this->watermark_extension  = '.png';
+		$this->watermark_position_x = 'right';
+		$this->watermark_position_y = 'top';
 
 		$this->add_actions();
 	}
@@ -139,6 +143,7 @@ class WP_Post_Image_Watermarks {
 		if ( ! is_wp_error( $image ) ) {
 			$original_size = $image->get_size();
 		}
+
 		// by putting the watermark on it
 		if ( ! is_wp_error( $image ) && is_callable( [ $image, 'stamp_watermark' ] ) ) {
 			$stamp   = imagecreatefrompng( $watermark_url );
@@ -152,7 +157,7 @@ class WP_Post_Image_Watermarks {
 					if ( ! is_wp_error( $editor ) ) {
 						$editor->resize( $size['width'], $size['height'], $size['crop'] );
 						$stamp        = imagecreatefrompng( $watermark_url );
-						$success      = $editor->stamp_watermark( $watermark_url );
+						$success      = $editor->stamp_watermark( $watermark_url, $this->watermark_position_x, $this->watermark_position_y );
 						$resized_file = $editor->save();
 						unset( $resized_file['path'] );
 					}
