@@ -17,15 +17,12 @@ class WP_Post_Image_Watermarks {
 	public $version;
 	public $slug;
 
+	public $thumbnail_image_field;
+	public $watermarked_thumbnail_sizes;
+
 	public $watermark_field;
 	public $watermark_folder_url;
 	public $watermark_extension;
-
-	/*private $api_key;
-	private $resource_type;
-	private $resource_id;
-	private $user_subresource_type;
-	private $list_subresource_type;*/
 
 	/**
 	 * @var object
@@ -55,8 +52,13 @@ class WP_Post_Image_Watermarks {
 		$this->version       = '0.0.1';
 		$this->slug          = 'wp-post-image-watermarks';
 
+		// this needs to be a wp_postmeta field
 		$this->thumbnail_image_field = '_mp_post_thumbnail_image';
 
+		// this needs to be an array of theme image sizes
+		$this->watermarked_thumbnail_sizes = array( 'feature', 'feature-large', 'feature-medium', 'newsletter-thumb', 'thumbnail' );
+
+		// this is a wp_postmetafield. the value should represent a watermark filename in the folder path.
 		$this->watermark_field      = '_mp_plus_icon_style';
 		$this->watermark_folder_url = get_theme_file_path() . '/assets/img/icons/';
 		$this->watermark_extension  = '.png';
@@ -103,9 +105,9 @@ class WP_Post_Image_Watermarks {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE || ( isset( $_POST['post_type'] ) && 'page' === $_POST['post_type'] && ! current_user_can( 'edit_page', $post_id ) ) || ! current_user_can( 'edit_post', $post_id ) ) {
 			return;
 		}
-		// Filter the default overlay settings
-		//add_filter( 'watermark_image_filter_defaults', 'update_watermark_image_defaults', 10, 2 );
-		//Watermark_Image_Generator::generate_watermark( $text, $img_url, $post_id );
+
+		// get the necessary dimensions for the sizes we allow to pass to the editor.
+		$image_sizes = $this->get_image_sizes( $this->watermarked_thumbnail_sizes );
 
 		// hook to set whether or not this attachment needs to be watermarked
 		$watermarked = apply_filters( 'image_watermark_allowed', false, $post_id );
@@ -123,7 +125,8 @@ class WP_Post_Image_Watermarks {
 			return;
 		}
 
-		if ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) ) {
+		// see if the post has a value for the given thumbnail image field, and if it is a WordPress uploaded file
+		if ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) && 0 === strpos( $post_meta[ $this->thumbnail_image_field ][0], get_site_url() ) ) {
 			$thumbnail_url = str_replace( get_site_url() . '/', get_home_path(), $post_meta[ $this->thumbnail_image_field ][0] );
 		} else {
 			return;
@@ -131,15 +134,61 @@ class WP_Post_Image_Watermarks {
 
 		$watermark_url = $this->watermark_folder_url . $watermark_file_name . $this->watermark_extension;
 
+		// edit the thumbnail image
 		$image = wp_get_image_editor( $thumbnail_url );
+		if ( ! is_wp_error( $image ) ) {
+			$original_size = $image->get_size();
+		}
+		// by putting the watermark on it
 		if ( ! is_wp_error( $image ) && is_callable( [ $image, 'stamp_watermark' ] ) ) {
 			$stamp   = imagecreatefrompng( $watermark_url );
 			$success = $image->stamp_watermark( $watermark_url );
 			if ( ! is_wp_error( $success ) ) {
-				$image->save( $thumbnail_url );
+				// this would save the main, original image with the watermark
+				//$image->save( $thumbnail_url );
+				// this needs to save a watermarked version of each of the plugin's specified watermarked thumbnails. it almost does it now but it's kind of broken.
+				foreach ( $image_sizes as $size ) {
+					$editor = wp_get_image_editor( $thumbnail_url );
+					if ( ! is_wp_error( $editor ) ) {
+						$editor->resize( $size['width'], $size['height'], $size['crop'] );
+						$stamp        = imagecreatefrompng( $watermark_url );
+						$success      = $editor->stamp_watermark( $watermark_url );
+						$resized_file = $editor->save();
+						unset( $resized_file['path'] );
+					}
+				}
 			}
 		}
 
+	}
+
+	/**
+	 * Get size information for all currently-registered image sizes.
+	 *
+	 * @global $_wp_additional_image_sizes
+	 * @uses   get_intermediate_image_sizes()
+	 * @return array $sizes Data for all currently-registered image sizes.
+	 */
+	public function get_image_sizes( $allowed_sizes ) {
+		global $_wp_additional_image_sizes;
+
+		$sizes = array();
+
+		foreach ( $allowed_sizes as $_size ) {
+			if ( in_array( $_size, array( 'thumbnail', 'medium', 'medium_large', 'large' ) ) ) {
+				$sizes[ $_size ]['width']  = get_option( "{$_size}_size_w" );
+				$sizes[ $_size ]['height'] = get_option( "{$_size}_size_h" );
+				$sizes[ $_size ]['crop']   = (bool) get_option( "{$_size}_crop" );
+			} elseif ( isset( $_wp_additional_image_sizes[ $_size ] ) ) {
+				$sizes[ $_size ] = array(
+					'width'  => $_wp_additional_image_sizes[ $_size ]['width'],
+					'height' => $_wp_additional_image_sizes[ $_size ]['height'],
+					'crop'   => $_wp_additional_image_sizes[ $_size ]['crop'],
+				);
+			}
+		}
+
+		return $sizes;
 	}
 
 }
