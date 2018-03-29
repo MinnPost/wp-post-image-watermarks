@@ -56,7 +56,7 @@ class WP_Post_Image_Watermarks {
 		$this->thumbnail_image_field = '_mp_post_thumbnail_image';
 
 		// this needs to be an array of theme image sizes
-		$this->watermarked_thumbnail_sizes = array( 'feature', 'feature-large', 'feature-medium', 'newsletter-thumb', 'thumbnail' );
+		$this->watermarked_thumbnail_sizes = array( 'feature', 'feature-large', 'feature-medium', 'newsletter-thumbnail', 'author-thumbnail', 'thumbnail' );
 
 		// this is a wp_postmetafield. the value should represent a watermark filename in the folder path.
 		$this->watermark_field      = '_mp_plus_icon_style';
