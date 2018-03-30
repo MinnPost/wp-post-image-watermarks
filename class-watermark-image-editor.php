@@ -3,28 +3,31 @@ class Watermark_Image_Editor extends WP_Image_Editor_GD {
 	/**
 	* Stamp the watermark onto the image attached to this class
 	*
-	* @param string $stamp_path
+	* @param string|resource $watermark_image
 	* @param string|int $x
 	* @param string|int $y
 	*
 	*/
-	public function stamp_watermark( $stamp_path, $x = 0, $y = 0 ) {
+	public function stamp_watermark( $watermark_image, $x = 0, $y = 0 ) {
 		$loaded = $this->load();
 		if ( is_wp_error( $loaded ) ) {
 			return $loaded;
 		}
 
-		$stamp = imagecreatefrompng( $stamp_path );
-		if ( is_wp_error( $stamp ) ) {
-			return $stamp;
+		if ( is_string( $watermark_image ) ) {
+			$watermark_image = imagecreatefrompng( $watermark_image );
 		}
-		imagealphablending( $stamp, true );
+
+		if ( is_wp_error( $watermark_image ) ) {
+			return $watermark_image;
+		}
+		imagealphablending( $watermark_image, true );
 
 		$image_width  = imagesx( $this->image );
 		$image_height = imagesy( $this->image );
 
-		$stamp_width  = imagesx( $stamp );
-		$stamp_height = imagesy( $stamp );
+		$watermark_width  = imagesx( $watermark_image );
+		$watermark_height = imagesy( $watermark_image );
 
 		imagealphablending( $this->image, true );
 
@@ -33,7 +36,7 @@ class Watermark_Image_Editor extends WP_Image_Editor_GD {
 				$x = 0;
 				break;
 			case 'right':
-				$x = $image_width - $stamp_width;
+				$x = $image_width - $watermark_width;
 				break;
 			default:
 				$x = $x;
@@ -45,7 +48,7 @@ class Watermark_Image_Editor extends WP_Image_Editor_GD {
 				$y = 0;
 				break;
 			case 'bottom':
-				$y = $image_width - $stamp_height;
+				$y = $image_width - $watermark_height;
 				break;
 			default:
 				$y = $y;
@@ -76,7 +79,30 @@ class Watermark_Image_Editor extends WP_Image_Editor_GD {
 		*     true on success, false on failure
 		*
 		*/
-		imagecopy( $this->image, $stamp, $x, $y, 0, 0, $stamp_width, $stamp_height );
+		imagecopy( $this->image, $watermark_image, $x, $y, 0, 0, $watermark_width, $watermark_height );
+	}
+
+	/**
+	 * Resizes current image and returns it as a resource instead of a boolean.
+	 * Returns the GD Resource from _resize.
+	 *
+	 * At minimum, either a height or width must be provided.
+	 * If one of the two is set to null, the resize will
+	 * maintain aspect ratio according to the provided dimension.
+	 *
+	 * @since 3.5.0
+	 *
+	 * @param  int|null $max_w Image width.
+	 * @param  int|null $max_h Image height.
+	 * @param  bool     $crop
+	 * @return true|WP_Error
+	 */
+	public function resize_get_resource( $max_w, $max_h, $crop = false ) {
+		if ( ( $this->size['width'] == $max_w ) && ( $this->size['height'] == $max_h ) ) {
+			return true;
+		}
+		$resized = $this->_resize( $max_w, $max_h, $crop );
+		return $resized;
 	}
 
 	public static function test( $args = array() ) {

@@ -148,15 +148,23 @@ class WP_Post_Image_Watermarks {
 
 		// by putting the watermark on it
 		if ( ! is_wp_error( $image ) && is_callable( [ $image, 'stamp_watermark' ] ) ) {
-			// this needs to save a watermarked version of each of the plugin's specified watermarked thumbnails. it almost does it now but it's kind of broken.
+			// this saves a watermarked version of each of the plugin's specified watermarked thumbnails.
 			foreach ( $image_sizes as $size ) {
 				$editor = wp_get_image_editor( $thumbnail_url );
 				if ( ! is_wp_error( $editor ) ) {
+
+					// set the dimensions that WordPress should generate for the image
 					$editor->resize( $size['width'], $size['height'], $size['crop'] );
-					$stamp        = imagecreatefrompng( $watermark_url );
-					$success      = $editor->stamp_watermark( $watermark_url, $this->watermark_position_x, $this->watermark_position_y );
-					$resized_file = $editor->save();
-					unset( $resized_file['path'] );
+
+					// resize the watermark image to match the defined percentage of the to-be-generated image
+					$watermark_image = wp_get_image_editor( $watermark_url );
+					if ( ! is_wp_error( $watermark_image ) ) {
+						$watermark_image = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $size['width'], null );
+						// put the watermark on top of the generated image and save it
+						$success      = $editor->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
+						$resized_file = $editor->save();
+						unset( $resized_file['path'] );
+					}
 				}
 			}
 		}
