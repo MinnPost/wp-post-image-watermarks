@@ -81,7 +81,7 @@ class WP_Post_Image_Watermarks {
 		add_filter( 'wp_image_editors', array( $this, 'add_watermark_editor' ), 10, 1 );
 
 		// save watermark on post save
-		add_action( 'save_post', array( $this, 'save_watermark_image' ) );
+		add_action( 'save_post', array( $this, 'save_watermark_image' ), 11, 1 );
 
 	}
 
@@ -148,21 +148,15 @@ class WP_Post_Image_Watermarks {
 
 		// by putting the watermark on it
 		if ( ! is_wp_error( $image ) && is_callable( [ $image, 'stamp_watermark' ] ) ) {
-			$stamp   = imagecreatefrompng( $watermark_url );
-			$success = $image->stamp_watermark( $watermark_url );
-			if ( ! is_wp_error( $success ) ) {
-				// this would save the main, original image with the watermark
-				//$image->save( $thumbnail_url );
-				// this needs to save a watermarked version of each of the plugin's specified watermarked thumbnails. it almost does it now but it's kind of broken.
-				foreach ( $image_sizes as $size ) {
-					$editor = wp_get_image_editor( $thumbnail_url );
-					if ( ! is_wp_error( $editor ) ) {
-						$editor->resize( $size['width'], $size['height'], $size['crop'] );
-						$stamp        = imagecreatefrompng( $watermark_url );
-						$success      = $editor->stamp_watermark( $watermark_url, $this->watermark_position_x, $this->watermark_position_y );
-						$resized_file = $editor->save();
-						unset( $resized_file['path'] );
-					}
+			// this needs to save a watermarked version of each of the plugin's specified watermarked thumbnails. it almost does it now but it's kind of broken.
+			foreach ( $image_sizes as $size ) {
+				$editor = wp_get_image_editor( $thumbnail_url );
+				if ( ! is_wp_error( $editor ) ) {
+					$editor->resize( $size['width'], $size['height'], $size['crop'] );
+					$stamp        = imagecreatefrompng( $watermark_url );
+					$success      = $editor->stamp_watermark( $watermark_url, $this->watermark_position_x, $this->watermark_position_y );
+					$resized_file = $editor->save();
+					unset( $resized_file['path'] );
 				}
 			}
 		}
