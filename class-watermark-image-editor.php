@@ -20,8 +20,12 @@ class Watermark_Image_Editor extends WP_Image_Editor_GD {
 		}
 		imagealphablending( $stamp, true );
 
+		$image_width  = imagesx( $this->image );
+		$image_height = imagesy( $this->image );
+
 		$stamp_width  = imagesx( $stamp );
 		$stamp_height = imagesy( $stamp );
+
 		imagealphablending( $this->image, true );
 
 		switch ( $x ) {
