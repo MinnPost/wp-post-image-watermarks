@@ -25,6 +25,7 @@ class WP_Post_Image_Watermarks {
 	public $watermark_extension;
 	public $watermark_position_x;
 	public $watermark_position_y;
+	public $watermark_width_percent;
 
 	/**
 	 * @var object
@@ -61,11 +62,12 @@ class WP_Post_Image_Watermarks {
 		$this->watermarked_thumbnail_sizes = array( 'feature', 'feature-large', 'feature-medium', 'newsletter-thumbnail', 'author-thumbnail', 'thumbnail' );
 
 		// this is a wp_postmetafield. the value should represent a watermark filename in the folder path.
-		$this->watermark_field      = '_mp_plus_icon_style';
-		$this->watermark_folder_url = get_theme_file_path() . '/assets/img/icons/';
-		$this->watermark_extension  = '.png';
-		$this->watermark_position_x = 'right';
-		$this->watermark_position_y = 'top';
+		$this->watermark_field         = '_mp_plus_icon_style';
+		$this->watermark_folder_url    = get_theme_file_path() . '/assets/img/icons/';
+		$this->watermark_extension     = '.png';
+		$this->watermark_position_x    = 'right';
+		$this->watermark_position_y    = 'top';
+		$this->watermark_width_percent = 25;
 
 		$this->add_actions();
 	}
