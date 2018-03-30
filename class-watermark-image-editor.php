@@ -29,7 +29,7 @@ class Watermark_Image_Editor extends WP_Image_Editor_GD {
 				$x = 0;
 				break;
 			case 'right':
-				$x = imagesx( $this->image ) - $stamp_width;
+				$x = $image_width - $stamp_width;
 				break;
 			default:
 				$x = $x;
@@ -41,7 +41,7 @@ class Watermark_Image_Editor extends WP_Image_Editor_GD {
 				$y = 0;
 				break;
 			case 'bottom':
-				$y = imagesy( $this->image ) - $stamp_height;
+				$y = $image_width - $stamp_height;
 				break;
 			default:
 				$y = $y;
