@@ -93,11 +93,18 @@ class WP_Post_Image_Watermarks {
 	* These are the available image editors to WordPress
 	*/
 	public function add_watermark_editor( $editors ) {
-		require_once __DIR__ . '/class-watermark-image-editor.php';
+		require_once __DIR__ . '/class-watermark-image-editor-gd.php';
+		//require_once __DIR__ . '/class-watermark-image-editor-imagick.php';
 		if ( ! is_array( $editors ) ) {
 			return $editors; //someone broke the filtered value
 		}
-		array_unshift( $editors, 'Watermark_Image_Editor' );
+		/*$watermark_editors = array( 'Watermark_Image_Editor_Imagick', 'Watermark_Image_Editor_GD' );
+		foreach ( $watermark_editors as $key => $value ) {
+			if ( ! call_user_func( array( $value, 'test' ), array() ) ) {
+				unset( $watermark_editors[ $value ] );
+			}
+		}*/
+		array_unshift( $editors, 'Watermark_Image_Editor_GD' );
 		return $editors;
 	}
 

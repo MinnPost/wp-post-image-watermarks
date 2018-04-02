@@ -1,5 +1,5 @@
 <?php
-class Watermark_Image_Editor extends WP_Image_Editor_GD {
+class Watermark_Image_Editor_GD extends WP_Image_Editor_GD {
 	/**
 	* Stamp the watermark onto the image attached to this class
 	*
