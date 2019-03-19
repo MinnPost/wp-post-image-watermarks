@@ -3,7 +3,7 @@
 Plugin Name: WP Post Image Watermarks
 Plugin URI:
 Description:
-Version: 0.0.1
+Version: 0.0.2
 Author: Jonathan Stegall
 Author URI: https://code.minnpost.com
 License: GPL2+
@@ -52,7 +52,7 @@ class WP_Post_Image_Watermarks {
 	public function __construct() {
 
 		$this->option_prefix = 'wp_post_image_watermark';
-		$this->version       = '0.0.1';
+		$this->version       = '0.0.2';
 		$this->slug          = 'wp-post-image-watermarks';
 
 		// this needs to be a wp_postmeta field
