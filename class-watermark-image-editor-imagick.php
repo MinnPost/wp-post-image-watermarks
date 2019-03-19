@@ -1,6 +1,8 @@
 <?php
-class Watermark_Image_Editor_Imagick extends WP_Image_Editor_Imagick {
-
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+class Watermark_Image_Editor_Imagick extends Improved_Image_Editor_Imagick {
 	/**
 	* Stamp the watermark onto the image attached to this class
 	*
@@ -16,22 +18,18 @@ class Watermark_Image_Editor_Imagick extends WP_Image_Editor_Imagick {
 		}
 
 		if ( is_string( $watermark_image ) ) {
-			$imagick = new Imagick();
-			$imagick->readImage( $watermark_image );
+			$watermark_image = $this->load( $watermark_image );
 		}
 
 		if ( is_wp_error( $watermark_image ) ) {
 			return $watermark_image;
 		}
-		imagealphablending( $watermark_image, true );
 
-		$image_width  = imagesx( $this->image );
-		$image_height = imagesy( $this->image );
+		$image_width  = $this->image->getimagewidth();
+		$image_height = $this->image->getimageheight();
 
-		$watermark_width  = imagesx( $watermark_image );
-		$watermark_height = imagesy( $watermark_image );
-
-		imagealphablending( $this->image, true );
+		$watermark_width  = $watermark_image->image->getimagewidth();
+		$watermark_height = $watermark_image->image->getimageheight();
 
 		switch ( $x ) {
 			case 'left':
@@ -57,31 +55,8 @@ class Watermark_Image_Editor_Imagick extends WP_Image_Editor_Imagick {
 				break;
 		}
 
-		/**
-		* PHP imagecopy function
-		*
-		* @param resource $dst_im
-		*     Destination image link resource.
-		* @param resource $src_im
-		*     Source image link resource.
-		* @param int $dst_x
-		*     x-coordinate of destination point.
-		* @param int $dst_y
-		*     y-coordinate of destination point.
-		* @param int $src_x
-		*     x-coordinate of source point.
-		* @param int $src_y
-		*     y-coordinate of source point.
-		* @param int
-		*     $src_w Source width.
-		* @param int
-		*     $src_h Source height.
-		*
-		* @return bool
-		*     true on success, false on failure
-		*
-		*/
-		imagecopy( $this->image, $watermark_image, $x, $y, 0, 0, $watermark_width, $watermark_height );
+		// Draw the watermark on your image
+		$this->image->compositeImage( $watermark_image->image, Imagick::COMPOSITE_OVER, $x, $y );
 	}
 
 	/**

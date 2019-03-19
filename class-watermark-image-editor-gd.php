@@ -1,5 +1,8 @@
 <?php
-class Watermark_Image_Editor_GD extends WP_Image_Editor_GD {
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+class Watermark_Image_Editor_GD extends Improved_Image_Editor_GD {
 	/**
 	* Stamp the watermark onto the image attached to this class
 	*
@@ -15,7 +18,21 @@ class Watermark_Image_Editor_GD extends WP_Image_Editor_GD {
 		}
 
 		if ( is_string( $watermark_image ) ) {
-			$watermark_image = imagecreatefrompng( $watermark_image );
+			switch ( $this->mime_type ) {
+				case 'gif':
+					$watermark_image = imagecreatefromgif( $watermark_image );
+					break;
+				case 'png':
+					$watermark_image = imagecreatefrompng( $watermark_image );
+					break;
+				case 'jpg':
+				case 'jpeg':
+					$watermark_image = imagecreatefromjpeg( $watermark_image );
+					break;
+				default:
+					return false;
+					break;
+			}
 		}
 
 		if ( is_wp_error( $watermark_image ) ) {
