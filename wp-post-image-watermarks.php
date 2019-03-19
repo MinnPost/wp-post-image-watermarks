@@ -77,8 +77,8 @@ class WP_Post_Image_Watermarks {
 	*
 	*/
 	private function add_actions() {
-		// add the watermark image editor
-		add_filter( 'wp_image_editors', array( $this, 'add_watermark_editor' ), 10, 1 );
+		// add the image editors
+		add_filter( 'wp_image_editors', array( $this, 'wp_image_editors' ), 10, 1 );
 
 		// save watermark on post save
 		add_action( 'save_post', array( $this, 'save_watermark_image' ), 11, 1 );
@@ -86,25 +86,31 @@ class WP_Post_Image_Watermarks {
 	}
 
 	/**
-	* Use the Watermark Image Editor class
+	* Use the Improved Image Editor and Watermark Image Editor classes
 	*
 	* @param array $editors
 	* @return array $editors
 	* These are the available image editors to WordPress
 	*/
-	public function add_watermark_editor( $editors ) {
+	public function wp_image_editors( $editors ) {
+		require_once 'editors/gd.php';
+		require_once 'editors/imagick.php';
+		require_once 'editors/gmagick.php';
+		require_once __DIR__ . '/class-watermark-image-editor-gmagick.php';
+		require_once __DIR__ . '/class-watermark-image-editor-imagick.php';
 		require_once __DIR__ . '/class-watermark-image-editor-gd.php';
-		//require_once __DIR__ . '/class-watermark-image-editor-imagick.php';
-		if ( ! is_array( $editors ) ) {
-			return $editors; //someone broke the filtered value
-		}
-		/*$watermark_editors = array( 'Watermark_Image_Editor_Imagick', 'Watermark_Image_Editor_GD' );
-		foreach ( $watermark_editors as $key => $value ) {
-			if ( ! call_user_func( array( $value, 'test' ), array() ) ) {
-				unset( $watermark_editors[ $value ] );
-			}
-		}*/
-		array_unshift( $editors, 'Watermark_Image_Editor_GD' );
+
+		$new_editors = array(
+			'Watermark_Image_Editor_Gmagick',
+			'Watermark_Image_Editor_Imagick',
+			'Watermark_Image_Editor_GD',
+			'Improved_Image_Editor_Gmagick',
+			'Improved_Image_Editor_Imagick',
+			'Improved_Image_Editor_GD',
+		);
+
+		$editors = array_merge( $new_editors, $editors );
+
 		return $editors;
 	}
 
@@ -114,7 +120,7 @@ class WP_Post_Image_Watermarks {
 	* @param int $post_id
 	*/
 	public function save_watermark_image( $post_id ) {
-			// Make sure we should be doing this action
+		// Make sure we should be doing this action
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE || ( isset( $_POST['post_type'] ) && 'page' === $_POST['post_type'] && ! current_user_can( 'edit_page', $post_id ) ) || ! current_user_can( 'edit_post', $post_id ) ) {
 			return;
 		}
