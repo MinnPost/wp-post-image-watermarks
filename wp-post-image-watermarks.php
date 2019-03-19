@@ -172,7 +172,7 @@ class WP_Post_Image_Watermarks {
 					// resize the watermark image to match the defined percentage of the to-be-generated image
 					$watermark_image = wp_get_image_editor( $watermark_url );
 					if ( ! is_wp_error( $watermark_image ) ) {
-						$watermark_image = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $size['width'], null );
+						$resized = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $size['width'], null );
 						// put the watermark on top of the generated image and save it
 						$success      = $editor->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
 						$resized_file = $editor->save();
