@@ -27,6 +27,8 @@ class WP_Post_Image_Watermarks {
 	public $watermark_position_y;
 	public $watermark_width_percent;
 
+	public $watermark_original;
+
 	/**
 	 * @var object
 	 * Static property to hold an instance of the class; this seems to make it reusable
@@ -68,6 +70,8 @@ class WP_Post_Image_Watermarks {
 		$this->watermark_position_x    = 'right';
 		$this->watermark_position_y    = 'top';
 		$this->watermark_width_percent = 25;
+
+		$this->watermark_original = true;
 
 		$this->add_actions();
 	}
@@ -161,23 +165,33 @@ class WP_Post_Image_Watermarks {
 
 		// by putting the watermark on it
 		if ( ! is_wp_error( $image ) && is_callable( [ $image, 'stamp_watermark' ] ) ) {
+
+			// if true, this saves a watermarked version of the original uploaded image
+			if ( true === $this->watermark_original ) {
+				$original_image  = wp_get_image_editor( $thumbnail_url );
+				$watermark_image = wp_get_image_editor( $watermark_url );
+				if ( ! is_wp_error( $watermark_image ) && ! is_wp_error( $original_image ) ) {
+					$original_size = $original_image->get_size();
+					$is_resized    = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $original_size['width'], null );
+					// put the watermark on top of the generated image and save it
+					$success      = $original_image->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
+					$resized_file = $original_image->save( $thumbnail_url );
+					unset( $resized_file['path'] );
+				}
+			}
+
 			// this saves a watermarked version of each of the plugin's specified watermarked thumbnails.
 			foreach ( $image_sizes as $size ) {
-				$editor = wp_get_image_editor( $thumbnail_url );
-				if ( ! is_wp_error( $editor ) ) {
-
+				$thumbnail_editor = wp_get_image_editor( $thumbnail_url );
+				$watermark_image  = wp_get_image_editor( $watermark_url );
+				if ( ! is_wp_error( $thumbnail_editor ) && ! is_wp_error( $watermark_image ) ) {
 					// set the dimensions that WordPress should generate for the image
-					$editor->resize( $size['width'], $size['height'], $size['crop'] );
-
-					// resize the watermark image to match the defined percentage of the to-be-generated image
-					$watermark_image = wp_get_image_editor( $watermark_url );
-					if ( ! is_wp_error( $watermark_image ) ) {
-						$resized = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $size['width'], null );
-						// put the watermark on top of the generated image and save it
-						$success      = $editor->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
-						$resized_file = $editor->save();
-						unset( $resized_file['path'] );
-					}
+					$thumbnail_editor->resize( $size['width'], $size['height'], $size['crop'] );
+					$is_resized = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $size['width'], null );
+					// put the watermark on top of the generated image and save it
+					$success      = $thumbnail_editor->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
+					$resized_file = $thumbnail_editor->save();
+					unset( $resized_file['path'] );
 				}
 			}
 		}
