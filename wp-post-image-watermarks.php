@@ -181,7 +181,7 @@ class WP_Post_Image_Watermarks {
 			$original_size = $image->get_size();
 		}
 
-		newrelic_notice_error( '5' );
+		newrelic_notice_error( '5. url is ' . $thumbnail_url );
 
 		// by putting the watermark on it
 		if ( ! is_wp_error( $image ) && is_callable( [ $image, 'stamp_watermark' ] ) ) {
@@ -216,6 +216,8 @@ class WP_Post_Image_Watermarks {
 					}
 				}
 			}
+		} else {
+			newrelic_notice_error( 'image error is ' . print_r( $image, true ) );
 		}
 
 	}
