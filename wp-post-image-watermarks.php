@@ -3,7 +3,7 @@
 Plugin Name: WP Post Image Watermarks
 Plugin URI:
 Description:
-Version: 0.0.2
+Version: 0.0.3
 Author: Jonathan Stegall
 Author URI: https://code.minnpost.com
 License: GPL2+
@@ -27,7 +27,9 @@ class WP_Post_Image_Watermarks {
 	public $watermark_position_y;
 	public $watermark_width_percent;
 
+	public $watermark_all_sizes;
 	public $watermark_original;
+	public $save_temp;
 
 	/**
 	 * @var object
@@ -54,11 +56,14 @@ class WP_Post_Image_Watermarks {
 	public function __construct() {
 
 		$this->option_prefix = 'wp_post_image_watermark';
-		$this->version       = '0.0.2';
+		$this->version       = '0.0.3';
 		$this->slug          = 'wp-post-image-watermarks';
 
 		// this needs to be a wp_postmeta field
 		$this->thumbnail_image_field = '_mp_post_thumbnail_image';
+
+		// this needs to be a wp_postmeta field
+		$this->thumbnail_image_field_id = '_mp_post_thumbnail_image_id';
 
 		// this needs to be an array of theme image sizes
 		$this->watermarked_thumbnail_sizes = array( 'feature', 'feature-large', 'feature-medium', 'newsletter-thumbnail', 'author-thumbnail', 'thumbnail' );
@@ -71,7 +76,9 @@ class WP_Post_Image_Watermarks {
 		$this->watermark_position_y    = 'top';
 		$this->watermark_width_percent = 25;
 
-		$this->watermark_original = true;
+		$this->watermark_original  = true;
+		$this->watermark_all_sizes = false;
+		$this->save_temp           = true;
 
 		$this->add_actions();
 	}
@@ -175,27 +182,99 @@ class WP_Post_Image_Watermarks {
 					$is_resized    = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $original_size['width'], null );
 					// put the watermark on top of the generated image and save it
 					$success      = $original_image->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
-					$resized_file = $original_image->save( $thumbnail_url );
-					unset( $resized_file['path'] );
+					$this->save_or_sideload( $thumbnail_url, $original_image, $post_id );
 				}
 			}
 
 			// this saves a watermarked version of each of the plugin's specified watermarked thumbnails.
-			foreach ( $image_sizes as $size ) {
-				$thumbnail_editor = wp_get_image_editor( $thumbnail_url );
-				$watermark_image  = wp_get_image_editor( $watermark_url );
-				if ( ! is_wp_error( $thumbnail_editor ) && ! is_wp_error( $watermark_image ) ) {
-					// set the dimensions that WordPress should generate for the image
-					$thumbnail_editor->resize( $size['width'], $size['height'], $size['crop'] );
-					$is_resized = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $size['width'], null );
-					// put the watermark on top of the generated image and save it
-					$success      = $thumbnail_editor->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
-					$resized_file = $thumbnail_editor->save();
-					unset( $resized_file['path'] );
+			if ( true === $this->watermark_all_sizes ) {
+				foreach ( $image_sizes as $key => $size ) {
+					$thumbnail_editor = wp_get_image_editor( $thumbnail_url );
+					$watermark_image  = wp_get_image_editor( $watermark_url );
+					if ( ! is_wp_error( $thumbnail_editor ) && ! is_wp_error( $watermark_image ) ) {
+						// set the dimensions that WordPress should generate for the image
+						$thumbnail_editor->resize( $size['width'], $size['height'], $size['crop'] );
+						$is_resized = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $size['width'], null );
+						// put the watermark on top of the generated image and save it
+						$success      = $thumbnail_editor->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
+
+						$this->save_or_sideload( $thumbnail_url, $thumbnail_editor, $post_id, $key );
+
+					}
 				}
 			}
 		}
 
+	}
+
+	/**
+	* Save the file to the directory, or save it to a temporary directory and then sideload it into the Media Library
+	*
+	* @param string $image_url
+	* @param object $image_editor
+	* @param int $post_id
+	* @param string $size_name
+	*/
+	private function save_or_sideload( $image_url, $image_editor, $post_id, $size_name = '' ) {
+		// save to temp directory
+		if ( true === $this->save_temp ) {
+			$filename       = wp_basename( $image_url );
+			$temp_file      = get_temp_dir() . $filename;
+			$resized_file   = $image_editor->save( $temp_file );
+			$filename_parts = pathinfo( $image_url );
+
+			if ( '' !== $size_name ) {
+				$filename = $filename_parts['filename'] . '-' . $resized_file['width'] . 'x' . $resized_file['height'] . '.' . $filename_parts['extension'];
+			}
+
+			$resized_file_array = array( // array to mimic $_FILES
+	            'name' => $filename,
+	            'type' => $resized_file['mime-type'],
+	            'tmp_name' => $temp_file, //this field passes the actual path to the image
+	            'error' => 0,
+	            'size' => filesize( $temp_file ),
+	        );
+
+			$sideload_id = media_handle_sideload( $resized_file_array, $post_id );
+
+			if ( ! is_wp_error( $sideload_id ) ) {
+				if ( is_file ( $temp_file ) ) {
+					unlink( $temp_file );
+				}
+				if ( '' === $size_name ) { // this is an original file upload
+					if ( '' !== $this->thumbnail_image_field ) {
+						$media_url = wp_get_attachment_url( $sideload_id );
+						update_post_meta( $post_id, $this->thumbnail_image_field, $media_url );
+					}
+					if ( '' !== $this->thumbnail_image_field_id ) {
+						update_post_meta( $post_id, $this->thumbnail_image_field_id, $sideload_id );
+					}
+				} else {
+					// this is a thumbnail size
+					if ( '' !== $this->thumbnail_image_field_id ) {
+						$post_meta = get_post_meta( $post_id );
+						// see if there is an image id on the post
+						if ( isset( $post_meta[ $this->thumbnail_image_field_id ][0] ) ) {
+							$attachment_id = $post_meta[ $this->thumbnail_image_field_id ][0];
+							$metadata      = wp_get_attachment_metadata( $attachment_id );
+							$data['sizes'][ $size_name ] = array(
+								'file' => $filename,
+								'width' => $resized_file['width'],
+								'height' => $resized_file['height'],
+								'mime-type' => $resized_file['mime-type'],
+							);
+							wp_update_attachment_metadata( $attachment_id, $data );
+							$updated_metadata      = wp_get_attachment_metadata( $attachment_id );
+						} else {
+							return;
+						}
+					}
+				}
+			}
+		} else {
+			$resized_file = $image_editor->save();
+			unset( $resized_file['path'] );
+		}
 	}
 
 	/**
