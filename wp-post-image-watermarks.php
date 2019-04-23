@@ -158,6 +158,9 @@ class WP_Post_Image_Watermarks {
 		// see if the post has a value for the given thumbnail image field, and if it is a WordPress uploaded file
 		if ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) && 0 === strpos( $post_meta[ $this->thumbnail_image_field ][0], get_site_url() ) ) {
 			$thumbnail_url = str_replace( get_site_url() . '/', get_home_path(), $post_meta[ $this->thumbnail_image_field ][0] );
+		} elseif ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) ) {
+			$thumbnail_id  = $post_meta[ $this->thumbnail_image_field_id ][0];
+			$thumbnail_url = wp_get_attachment_url( $thumbnail_id );
 		} else {
 			return;
 		}
