@@ -158,9 +158,11 @@ class WP_Post_Image_Watermarks {
 		// see if the post has a value for the given thumbnail image field, and if it is a WordPress uploaded file
 		if ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) && 0 === strpos( $post_meta[ $this->thumbnail_image_field ][0], get_site_url() ) ) {
 			$thumbnail_url = str_replace( get_site_url() . '/', get_home_path(), $post_meta[ $this->thumbnail_image_field ][0] );
-		} elseif ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) ) {
+		} elseif ( isset( $post_meta[ $this->thumbnail_image_field_id ][0] ) ) {
 			$thumbnail_id  = $post_meta[ $this->thumbnail_image_field_id ][0];
+			newrelic_notice_error( 'thumbnail id is ' . $thumbnail_id );
 			$thumbnail_url = wp_get_attachment_url( $thumbnail_id );
+			newrelic_notice_error( 'thumbnail url is ' . $thumbnail_url );
 		} else {
 			return;
 		}
@@ -175,6 +177,7 @@ class WP_Post_Image_Watermarks {
 			if ( true === $this->save_temp ) {
 				$filename       = wp_basename( $thumbnail_url );
 				$temp_file      = get_temp_dir() . $filename;
+				newrelic_notice_error( 'temp file is ' . $temp_file );
 				$resized_file   = $image_editor->save( $temp_file );
 				$image          = wp_get_image_editor( $temp_file );
 			}
