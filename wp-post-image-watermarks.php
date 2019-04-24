@@ -191,14 +191,21 @@ class WP_Post_Image_Watermarks {
 
 			// if true, this saves a watermarked version of the original uploaded image
 			if ( true === $this->watermark_original ) {
-				$original_image  = wp_get_image_editor( $thumbnail_url );
+				//$original_image  = wp_get_image_editor( $thumbnail_url );
 				$watermark_image = wp_get_image_editor( $watermark_url );
-				if ( ! is_wp_error( $watermark_image ) && ! is_wp_error( $original_image ) ) {
-					$original_size = $original_image->get_size();
+
+				if ( is_wp_error( $watermark_image ) ) {
+					$watermark_folder_url = get_theme_file_uri() . '/assets/img/icons/';
+					$watermark_url        = $watermark_folder_url . $watermark_file_name . $this->watermark_extension;
+					$watermark_image      = wp_get_image_editor( $watermark_url );
+				}
+
+				if ( ! is_wp_error( $watermark_image ) ) {
+					$original_size = $image->get_size();
 					$is_resized    = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $original_size['width'], null );
 					// put the watermark on top of the generated image and save it
-					$success      = $original_image->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
-					$this->save_or_sideload( $thumbnail_url, $original_image, $post_id );
+					$success      = $image->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
+					$this->save_or_sideload( $thumbnail_url, $image, $post_id );
 				}
 			}
 
@@ -333,3 +340,9 @@ class WP_Post_Image_Watermarks {
 
 // Instantiate our class
 $wp_post_image_watermarks = WP_Post_Image_Watermarks::get_instance();
+
+if ( ! function_exists( 'newrelic_notice_error' ) ) {
+	function newrelic_notice_error( $message ) {
+		error_log( $message );
+	}
+}
