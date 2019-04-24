@@ -131,12 +131,10 @@ class WP_Post_Image_Watermarks {
 	* @param int $post_id
 	*/
 	public function save_watermark_image( $post_id ) {
-		newrelic_notice_error( '0' );
 		// Make sure we should be doing this action
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE || ( isset( $_POST['post_type'] ) && 'page' === $_POST['post_type'] && ! current_user_can( 'edit_page', $post_id ) ) || ! current_user_can( 'edit_post', $post_id ) ) {
 			return;
 		}
-		newrelic_notice_error( '1' );
 
 		// get the necessary dimensions for the sizes we allow to pass to the editor.
 		$image_sizes = $this->get_image_sizes( $this->watermarked_thumbnail_sizes );
@@ -148,8 +146,6 @@ class WP_Post_Image_Watermarks {
 			return;
 		}
 
-		newrelic_notice_error( '2' );
-
 		$post_meta = get_post_meta( $post_id );
 
 		// see if there is a value on the post for the watermark field
@@ -158,8 +154,6 @@ class WP_Post_Image_Watermarks {
 		} else {
 			return;
 		}
-
-		newrelic_notice_error( '3' );
 
 		// see if the post has a value for the given thumbnail image field, and if it is a WordPress uploaded file
 		if ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) && 0 === strpos( $post_meta[ $this->thumbnail_image_field ][0], get_site_url() ) ) {
@@ -171,17 +165,20 @@ class WP_Post_Image_Watermarks {
 			return;
 		}
 
-		newrelic_notice_error( '4. url is ' . $thumbnail_url );
-
 		$watermark_url = $this->watermark_folder_url . $watermark_file_name . $this->watermark_extension;
 
 		// edit the thumbnail image
 		$image = wp_get_image_editor( $thumbnail_url );
 		if ( ! is_wp_error( $image ) ) {
 			$original_size = $image->get_size();
+		} else {
+			if ( true === $this->save_temp ) {
+				$filename       = wp_basename( $image_url );
+				$temp_file      = get_temp_dir() . $filename;
+				$resized_file   = $image_editor->save( $temp_file );
+				$image          = wp_get_image_editor( $temp_file );
+			}
 		}
-
-		newrelic_notice_error( '5. url is ' . $thumbnail_url );
 
 		// by putting the watermark on it
 		if ( ! is_wp_error( $image ) && is_callable( [ $image, 'stamp_watermark' ] ) ) {
@@ -195,7 +192,7 @@ class WP_Post_Image_Watermarks {
 					$is_resized    = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $original_size['width'], null );
 					// put the watermark on top of the generated image and save it
 					$success      = $original_image->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
-					$this->save_or_sideload( $thumbnail_url, $original_image, $post_id );
+					$this->save_or_sideload( $thumbnail_url, $original_image, $post_id, $temp_file );
 				}
 			}
 
@@ -211,7 +208,14 @@ class WP_Post_Image_Watermarks {
 						// put the watermark on top of the generated image and save it
 						$success      = $thumbnail_editor->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
 
-						$this->save_or_sideload( $thumbnail_url, $thumbnail_editor, $post_id, $key );
+						if ( true === $this->save_temp ) {
+							$filename       = wp_basename( $thumbnail_url );
+							$temp_file      = get_temp_dir() . $filename;
+							$resized_file   = $image_editor->save( $temp_file );
+							$image          = wp_get_image_editor( $temp_file );
+						}
+
+						$this->save_or_sideload( $thumbnail_url, $thumbnail_editor, $post_id, $temp_file, $key );
 
 					}
 				}
@@ -230,34 +234,32 @@ class WP_Post_Image_Watermarks {
 	* @param int $post_id
 	* @param string $size_name
 	*/
-	private function save_or_sideload( $image_url, $image_editor, $post_id, $size_name = '' ) {
+	private function save_or_sideload( $image_url, $image_editor, $post_id, $thumbnail_file = '', $size_name = '' ) {
 		// save to temp directory
 		if ( true === $this->save_temp ) {
 			newrelic_notice_error( '6' );
 			$filename       = wp_basename( $image_url );
-			$temp_file      = get_temp_dir() . $filename;
-			$resized_file   = $image_editor->save( $temp_file );
 			$filename_parts = pathinfo( $image_url );
 
 			if ( '' !== $size_name ) {
 				$filename = $filename_parts['filename'] . '-' . $resized_file['width'] . 'x' . $resized_file['height'] . '.' . $filename_parts['extension'];
 			}
 
-			newrelic_notice_error( '7. filename is ' . $filename . ' and temp file is ' . $temp_file );
+			newrelic_notice_error( '7. filename is ' . $filename . ' and temp file is ' . $thumbnail_file );
 
 			$resized_file_array = array( // array to mimic $_FILES
 	            'name' => $filename,
 	            'type' => $resized_file['mime-type'],
-	            'tmp_name' => $temp_file, //this field passes the actual path to the image
+	            'tmp_name' => $thumbnail_file, //this field passes the actual path to the image
 	            'error' => 0,
-	            'size' => filesize( $temp_file ),
+	            'size' => filesize( $thumbnail_file ),
 	        );
 
 			$sideload_id = media_handle_sideload( $resized_file_array, $post_id );
 			if ( ! is_wp_error( $sideload_id ) ) {
 				newrelic_notice_error( '8. id is ' . $sideload_id );
-				if ( is_file ( $temp_file ) ) {
-					unlink( $temp_file );
+				if ( is_file ( $thumbnail_file ) ) {
+					unlink( $thumbnail_file );
 				}
 				newrelic_notice_error( '9' );
 				if ( '' === $size_name ) { // this is an original file upload
