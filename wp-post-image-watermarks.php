@@ -173,7 +173,7 @@ class WP_Post_Image_Watermarks {
 			$original_size = $image->get_size();
 		} else {
 			if ( true === $this->save_temp ) {
-				$filename       = wp_basename( $image_url );
+				$filename       = wp_basename( $thumbnail_url );
 				$temp_file      = get_temp_dir() . $filename;
 				$resized_file   = $image_editor->save( $temp_file );
 				$image          = wp_get_image_editor( $temp_file );
