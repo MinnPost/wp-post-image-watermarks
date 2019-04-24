@@ -157,7 +157,9 @@ class WP_Post_Image_Watermarks {
 
 		// see if the post has a value for the given thumbnail image field, and if it is a WordPress uploaded file
 		if ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) && 0 === strpos( $post_meta[ $this->thumbnail_image_field ][0], get_site_url() ) ) {
-			$thumbnail_url = str_replace( get_site_url() . '/', get_home_path(), $post_meta[ $this->thumbnail_image_field ][0] );
+			//$thumbnail_url = str_replace( get_site_url() . '/', get_home_path(), $post_meta[ $this->thumbnail_image_field ][0] );
+
+			$thumbnail_url = $post_meta[ $this->thumbnail_image_field ][0];
 		} elseif ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) ) {
 			$thumbnail_id  = $post_meta[ $this->thumbnail_image_field_id ][0];
 			$thumbnail_url = wp_get_attachment_url( $thumbnail_id );
@@ -167,8 +169,19 @@ class WP_Post_Image_Watermarks {
 
 		$watermark_url = $this->watermark_folder_url . $watermark_file_name . $this->watermark_extension;
 
+		if ( true === $this->save_temp ) {
+			$temp_thumbnail = download_url( $thumbnail_url );
+			if ( ! is_wp_error( $temp_thumbnail ) ) {
+				$thumbnail_url = $temp_thumbnail;
+			}
+		}
 		// edit the thumbnail image
 		$image = wp_get_image_editor( $thumbnail_url );
+		if ( is_wp_error( $image ) ) {
+			$thumbnail_url = str_replace( get_site_url() . '/', get_home_path(), $post_meta[ $this->thumbnail_image_field ][0] );
+			$image = wp_get_image_editor( $thumbnail_url );
+		}
+
 		if ( ! is_wp_error( $image ) ) {
 			$original_size = $image->get_size();
 		}
