@@ -163,9 +163,13 @@ class WP_Post_Image_Watermarks {
 			newrelic_notice_error( 'thumbnail id is ' . $thumbnail_id );
 			$thumbnail_url = wp_get_attachment_url( $thumbnail_id );
 			newrelic_notice_error( 'thumbnail url is ' . $thumbnail_url );
+			return;
 		} else {
+			error_log( 'empty' );
 			return;
 		}
+
+		newrelic_notice_error( '2. thumbnail url is ' . $thumbnail_url );
 
 		$watermark_url = $this->watermark_folder_url . $watermark_file_name . $this->watermark_extension;
 
@@ -178,6 +182,7 @@ class WP_Post_Image_Watermarks {
 				$filename       = wp_basename( $thumbnail_url );
 				$temp_file      = get_temp_dir() . $filename;
 				newrelic_notice_error( 'temp file is ' . $temp_file );
+				return;
 				$resized_file   = $image_editor->save( $temp_file );
 				$image          = wp_get_image_editor( $temp_file );
 			}
