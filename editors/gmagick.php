@@ -99,7 +99,7 @@ class Improved_Image_Editor_Gmagick extends WP_Image_Editor {
 
 			$this->mime_type = $this->get_mime_type( $this->image->getimageformat() );
 
-			if ( in_array( $this->mime_type, array( 'image/jpeg', 'image/tiff' ) ) ) {
+			if ( in_array( $this->mime_type, array( 'image/jpeg', 'image/tiff' ) ) && function_exists( 'exif_read_data' ) ) {
 				$exif = exif_read_data($this->file);
 				$orientation = 0;
 
