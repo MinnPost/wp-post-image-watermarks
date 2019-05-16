@@ -188,7 +188,7 @@ class WP_Post_Image_Watermarks {
 					$original_size = $original_image->get_size();
 					$is_resized    = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $original_size['width'], null );
 					// put the watermark on top of the generated image and save it
-					$success      = $original_image->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
+					$success = $original_image->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
 					$this->save_or_sideload( $thumbnail_url, $original_image, $post_id );
 				}
 			}
@@ -203,7 +203,7 @@ class WP_Post_Image_Watermarks {
 						$thumbnail_editor->resize( $size['width'], $size['height'], $size['crop'] );
 						$is_resized = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $size['width'], null );
 						// put the watermark on top of the generated image and save it
-						$success      = $thumbnail_editor->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
+						$success = $thumbnail_editor->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
 
 						$this->save_or_sideload( $thumbnail_url, $thumbnail_editor, $post_id, $key );
 
@@ -235,12 +235,12 @@ class WP_Post_Image_Watermarks {
 			}
 
 			$resized_file_array = array( // array to mimic $_FILES
-	            'name' => $filename,
-	            'type' => $resized_file['mime-type'],
-	            'tmp_name' => $temp_file, //this field passes the actual path to the image
-	            'error' => 0,
-	            'size' => filesize( $temp_file ),
-	        );
+				'name'     => $filename,
+				'type'     => $resized_file['mime-type'],
+				'tmp_name' => $temp_file, //this field passes the actual path to the image
+				'error'    => 0,
+				'size'     => filesize( $temp_file ),
+			);
 
 			$sideload_id = media_handle_sideload( $resized_file_array, $post_id );
 
