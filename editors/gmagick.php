@@ -90,7 +90,11 @@ class Improved_Image_Editor_Gmagick extends WP_Image_Editor {
 			return new WP_Error( 'error_loading_image', __('File doesn&#8217;t exist?'), $this->file );
 
 		try {
-			$this->image = new Gmagick( $this->file );
+			if ( true === WPCOM_IS_VIP_ENV ) {
+				$this->image = ( new Gmagick() )->readimageblob( file_get_contents( $this->file ) );
+			} else {
+				$this->image = new Gmagick( $this->file );
+			}
 
 			// Select the first frame to handle animated images properly
 			if ( is_callable( array( $this->image, 'setimageindex' ) ) ) {

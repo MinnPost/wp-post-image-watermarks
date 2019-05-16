@@ -157,7 +157,11 @@ class WP_Post_Image_Watermarks {
 
 		// see if the post has a value for the given thumbnail image field, and if it is a WordPress uploaded file
 		if ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) && 0 === strpos( $post_meta[ $this->thumbnail_image_field ][0], get_site_url() ) ) {
-			$thumbnail_url = str_replace( get_site_url() . '/', get_home_path(), $post_meta[ $this->thumbnail_image_field ][0] );
+			if ( true === WPCOM_IS_VIP_ENV ) {
+				$thumbnail_url = str_replace( home_url( '/' ), 'vip://', $post_meta[ $this->thumbnail_image_field ][0] ); // => vip://wp-content/uploads/2019/05/…-2.jpg
+			} else {
+				$thumbnail_url = str_replace( get_site_url() . '/', get_home_path(), $post_meta[ $this->thumbnail_image_field ][0] );
+			}
 		} elseif ( isset( $post_meta[ $this->thumbnail_image_field ][0] ) ) {
 			$thumbnail_id  = $post_meta[ $this->thumbnail_image_field_id ][0];
 			$thumbnail_url = wp_get_attachment_url( $thumbnail_id );
@@ -241,7 +245,7 @@ class WP_Post_Image_Watermarks {
 			$sideload_id = media_handle_sideload( $resized_file_array, $post_id );
 
 			if ( ! is_wp_error( $sideload_id ) ) {
-				if ( is_file ( $temp_file ) ) {
+				if ( file_exists( $temp_file ) ) {
 					unlink( $temp_file );
 				}
 				if ( '' === $size_name ) { // this is an original file upload
