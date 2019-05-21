@@ -74,6 +74,7 @@ class WP_Post_Image_Watermarks {
 		$this->watermark_extension     = '.png';
 		$this->watermark_position_x    = 'right';
 		$this->watermark_position_y    = 'top';
+		$this->watermark_margin        = 5;
 		$this->watermark_width_percent = 25;
 
 		$this->watermark_original  = true;
@@ -185,10 +186,13 @@ class WP_Post_Image_Watermarks {
 				$original_image  = wp_get_image_editor( $thumbnail_url );
 				$watermark_image = wp_get_image_editor( $watermark_url );
 				if ( ! is_wp_error( $watermark_image ) && ! is_wp_error( $original_image ) ) {
-					$original_size = $original_image->get_size();
-					$is_resized    = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $original_size['width'], null );
+					$original_size  = $original_image->get_size();
+					$watermark_size = $watermark_image->get_size();
+					$is_resized     = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $original_size['width'], null );
+					// get the positioning for the watermark
+					$watermark_position = $this->get_watermark_position( $original_size, $watermark_size );
 					// put the watermark on top of the generated image and save it
-					$success = $original_image->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
+					$success = $original_image->stamp_watermark( $watermark_image, $watermark_position['x'], $watermark_position['y'] );
 					$this->save_or_sideload( $thumbnail_url, $original_image, $post_id );
 				}
 			}
@@ -199,11 +203,14 @@ class WP_Post_Image_Watermarks {
 					$thumbnail_editor = wp_get_image_editor( $thumbnail_url );
 					$watermark_image  = wp_get_image_editor( $watermark_url );
 					if ( ! is_wp_error( $thumbnail_editor ) && ! is_wp_error( $watermark_image ) ) {
+						$watermark_image = wp_get_image_editor( $watermark_url );
 						// set the dimensions that WordPress should generate for the image
 						$thumbnail_editor->resize( $size['width'], $size['height'], $size['crop'] );
 						$is_resized = $watermark_image->resize_get_resource( ( $this->watermark_width_percent / 100 ) * $size['width'], null );
+						// get the positioning for the watermark
+						$watermark_position = $this->get_watermark_position( $size, $watermark_size );
 						// put the watermark on top of the generated image and save it
-						$success = $thumbnail_editor->stamp_watermark( $watermark_image, $this->watermark_position_x, $this->watermark_position_y );
+						$success = $thumbnail_editor->stamp_watermark( $watermark_image, $watermark_position['x'], $watermark_position['y'] );
 
 						$this->save_or_sideload( $thumbnail_url, $thumbnail_editor, $post_id, $key );
 
@@ -262,16 +269,16 @@ class WP_Post_Image_Watermarks {
 						$post_meta = get_post_meta( $post_id );
 						// see if there is an image id on the post
 						if ( isset( $post_meta[ $this->thumbnail_image_field_id ][0] ) ) {
-							$attachment_id = $post_meta[ $this->thumbnail_image_field_id ][0];
-							$metadata      = wp_get_attachment_metadata( $attachment_id );
+							$attachment_id               = $post_meta[ $this->thumbnail_image_field_id ][0];
+							$metadata                    = wp_get_attachment_metadata( $attachment_id );
 							$data['sizes'][ $size_name ] = array(
-								'file' => $filename,
-								'width' => $resized_file['width'],
-								'height' => $resized_file['height'],
+								'file'      => $filename,
+								'width'     => $resized_file['width'],
+								'height'    => $resized_file['height'],
 								'mime-type' => $resized_file['mime-type'],
 							);
 							wp_update_attachment_metadata( $attachment_id, $data );
-							$updated_metadata      = wp_get_attachment_metadata( $attachment_id );
+							$updated_metadata = wp_get_attachment_metadata( $attachment_id );
 						} else {
 							return;
 						}
@@ -311,6 +318,30 @@ class WP_Post_Image_Watermarks {
 		}
 
 		return $sizes;
+	}
+
+	/**
+	 * Set pixel placement for watermark
+	 *
+	 * @param  array $original_size
+	 * @param  array $watermark_size
+	 * @return array $watermark_position_x
+	 */
+	private function get_watermark_position( $original_size, $watermark_size ) {
+		$watermark_position = array();
+		if ( 'left' === $this->watermark_position_x ) {
+			$watermark_position['x'] = $this->watermark_margin;
+		}
+		if ( 'top' === $this->watermark_position_y ) {
+			$watermark_position['y'] = $this->watermark_margin;
+		}
+		if ( 'right' === $this->watermark_position_x ) {
+			$watermark_position['x'] = $original_size['width'] - $watermark_size['width'] - $this->watermark_margin;
+		}
+		if ( 'bottom' === $this->watermark_position_y ) {
+			$watermark_position['y'] = $original_size['height'] - $watermark_size['height'] - $this->watermark_margin;
+		}
+		return $watermark_position;
 	}
 
 }
